@@ -129,7 +129,7 @@ export default function TeacherHome() {
                     {dummyClasses.map((classItem) => (
                         <Card
                             key={classItem.id}
-                            className="hover:shadow-md transition-all cursor-pointer hover:border-primary min-w-[280px] md:min-w-0 snap-start flex-shrink-0"
+                            className="hover:shadow-md transition-all cursor-pointer hover:border-primary min-w-70 md:min-w-0 snap-start shrink-0"
                             onClick={() => handleClassClick(classItem)}
                         >
                             <CardHeader className="pb-3">
@@ -181,7 +181,7 @@ export default function TeacherHome() {
 
             {/* Attendance Method Selection Dialog */}
             <Dialog open={isAttendanceDialogOpen} onOpenChange={setIsAttendanceDialogOpen}>
-                <DialogContent className="sm:max-w-[600px]">
+                <DialogContent className="sm:max-w-150">
                     <DialogHeader>
                         <DialogTitle>Choose Attendance Marking Method</DialogTitle>
                         <DialogDescription>

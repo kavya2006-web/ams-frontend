@@ -41,13 +41,7 @@ export default function DashboardLayout({
     // Teacher-specific items
     if (user?.role === 'teacher' || user?.role === 'hod') {
       baseItems.push(
-        { icon: <ClipboardCheck size={18} />, label: 'Attendance', onClick: () => router.push('/dashboard/attendance') }
-      );
-    }
-
-    // Teacher-specific items
-    if (user?.role === 'teacher' || user?.role === 'hod') {
-      baseItems.push(
+        { icon: <BookOpen size={18} />, label: 'Academics', onClick: () => router.push('/dashboard/academics') },
         { icon: <ClipboardCheck size={18} />, label: 'Attendance', onClick: () => router.push('/dashboard/attendance') }
       );
     }
@@ -55,8 +49,7 @@ export default function DashboardLayout({
     // Common items for all roles
     baseItems.push(
       { icon: <BellRing size={18} />, label: 'Notifications', onClick: () => router.push('/dashboard/notifications') },
-      { icon: <Book size={18} />, label: 'Assignments', onClick: () => router.push('/dashboard/assignments') },
-      { icon: <Settings size={18} />, label: 'Settings', onClick: () => alert('Settings!') }
+      //{ icon: <Book size={18} />, label: 'Assignments', onClick: () => router.push('/dashboard/assignments') },
     );
 
     // Profile item (always last)
