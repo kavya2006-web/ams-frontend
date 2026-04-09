@@ -17,6 +17,7 @@ export interface User {
     record : string;
     user : string;
   }
+  _id?: string;
 
   // Base user fields (flattened at root)
   name: string;

@@ -304,7 +304,7 @@ export function BatchDialog({ batch, open, onOpenChange, mode, onSuccess }: Batc
                       </FormControl>
                       <SelectContent>
                         {teachers.map((teacher) => (
-                          <SelectItem key={teacher.id.user} value={teacher.id.user}>
+                          <SelectItem key={teacher._id} value={teacher._id!}>
                             {teacher.first_name} {teacher.last_name}
                           </SelectItem>
                         ))}
