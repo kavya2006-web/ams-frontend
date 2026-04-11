@@ -174,3 +174,31 @@ export async function deleteBatchById(id: string): Promise<void> {
     throw new Error(error.message || 'Failed to delete batch');
   }
 }
+
+export type CreateBatchesBulkResponse = ApiResponse<{
+  success?: Array<{ name: string; batchId?: string }>;
+  failed?: Array<{ name?: string; error?: string }>;
+}> & { httpStatus: number };
+
+export async function createBatchesBulk(batches: Partial<CreateBatchData>[]): Promise<CreateBatchesBulkResponse> {
+  const success: Array<{ name: string; batchId?: string }> = [];
+  const failed: Array<{ name?: string; error?: string }> = [];
+  
+  for (const batch of batches) {
+    try {
+      const res = await createBatch(batch as CreateBatchData);
+      success.push({ name: batch.name || 'Unknown', batchId: res._id });
+    } catch (err: any) {
+      failed.push({ name: batch.name || 'Unknown', error: err.message });
+    }
+  }
+
+  const httpStatus = failed.length > 0 ? (success.length > 0 ? 207 : 422) : 200;
+
+  return {
+    status_code: httpStatus,
+    message: failed.length > 0 ? `Completed with ${failed.length} failures` : "Successfully created all batches",
+    data: { success, failed },
+    httpStatus
+  };
+}

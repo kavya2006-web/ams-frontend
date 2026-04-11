@@ -168,3 +168,31 @@ export async function deleteSubjectById(id: string): Promise<void> {
     throw new Error(error.message || 'Failed to delete subject');
   }
 }
+
+export type CreateSubjectsBulkResponse = ApiResponse<{
+  success?: Array<{ name: string; subjectId?: string }>;
+  failed?: Array<{ name?: string; error?: string }>;
+}> & { httpStatus: number };
+
+export async function createSubjectsBulk(subjects: Partial<CreateSubjectData>[]): Promise<CreateSubjectsBulkResponse> {
+  const success: Array<{ name: string; subjectId?: string }> = [];
+  const failed: Array<{ name?: string; error?: string }> = [];
+  
+  for (const subject of subjects) {
+    try {
+      const res = await createSubject(subject as CreateSubjectData);
+      success.push({ name: subject.name || 'Unknown', subjectId: res._id });
+    } catch (err: any) {
+      failed.push({ name: subject.name || 'Unknown', error: err.message });
+    }
+  }
+
+  const httpStatus = failed.length > 0 ? (success.length > 0 ? 207 : 422) : 200;
+
+  return {
+    status_code: httpStatus,
+    message: failed.length > 0 ? `Completed with ${failed.length} failures` : "Successfully created all subjects",
+    data: { success, failed },
+    httpStatus
+  };
+}

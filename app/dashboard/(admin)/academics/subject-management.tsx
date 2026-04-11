@@ -23,11 +23,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Eye, Pencil, Trash2, Search, Plus } from "lucide-react";
+import { AlertCircle, Eye, Pencil, Trash2, Search, Plus, Upload } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AddSubjectDialog } from "./add-subject-dialog";
 import { SubjectDialog } from "./subject-dialog";
 import { DeleteSubjectDialog } from "./delete-subject-dialog";
+import { BulkUploadSubjectDialog } from "./bulk-upload-subject-dialog";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -45,6 +46,7 @@ export function SubjectManagement() {
   const [dialogMode, setDialogMode] = useState<"view" | "edit">("view");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [addSubjectDialogOpen, setAddSubjectDialogOpen] = useState(false);
+  const [bulkUploadDialogOpen, setBulkUploadDialogOpen] = useState(false);
 
   const fetchSubjects = useCallback(async () => {
     try {
@@ -179,6 +181,10 @@ export function SubjectManagement() {
                   className="pl-8 w-full md:w-62.5"
                 />
               </div>
+              <Button variant="outline" onClick={() => setBulkUploadDialogOpen(true)} className="gap-2">
+                <Upload className="h-4 w-4" />
+                Import CSV
+              </Button>
               <Button onClick={() => setAddSubjectDialogOpen(true)} className="gap-2">
                 <Plus className="h-4 w-4" />
                 Add Subject
@@ -296,6 +302,12 @@ export function SubjectManagement() {
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         onSuccess={handleDeleteSuccess}
+      />
+
+      <BulkUploadSubjectDialog
+        open={bulkUploadDialogOpen}
+        onOpenChange={setBulkUploadDialogOpen}
+        onSuccess={handleAddSuccess}
       />
     </>
   );
