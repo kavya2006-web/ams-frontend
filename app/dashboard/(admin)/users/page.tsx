@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { listUsers, deleteUserById } from "@/lib/api/user";
 import { User, UserRole, PaginationInfo } from "@/lib/types/UserTypes";
+import { Batch, listBatches } from "@/lib/api/batch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,7 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Eye, Pencil, Trash2, Search, UserPlus, Upload } from "lucide-react";
+import { AlertCircle, Eye, Pencil, Trash2, Search, UserPlus, Upload, ChevronRight, ChevronDown, Folder, Users, LayoutList } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -62,6 +63,18 @@ export default function UsersPage() {
   const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_ITEMS_PER_PAGE);
   const [sortOption, setSortOption]     = useState<SortOption>("name-asc");
 
+  // Batch & filtering state for students
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [selectedYear, setSelectedYear] = useState<number | "all">("all");
+  const [selectedDepartment, setSelectedDepartment] = useState<string | "all">("all");
+  const [expandedYears, setExpandedYears] = useState<number[]>([]);
+
+  const toggleYear = (year: number) => {
+    setExpandedYears(prev => 
+      prev.includes(year) ? prev.filter(y => y !== year) : [...prev, year]
+    );
+  };
+
   // Dialog states
   const [selectedUser, setSelectedUser]         = useState<User | null>(null);
   const [userDialogOpen, setUserDialogOpen]     = useState(false);
@@ -69,6 +82,51 @@ export default function UsersPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [addUserDialogOpen, setAddUserDialogOpen]     = useState(false);
   const [bulkUploadDialogOpen, setBulkUploadDialogOpen] = useState(false);
+
+  // ── Batches logic ──────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    const fetchAllBatches = async () => {
+      try {
+        const data = await listBatches({ limit: 100 });
+        setBatches(data.batches);
+      } catch (err) {
+        console.error("Failed to fetch batches", err);
+      }
+    };
+    fetchAllBatches();
+  }, []);
+
+  const availableYears = useMemo(() => {
+    const years = new Set(batches.map(b => b.adm_year).filter(Boolean));
+    return Array.from(years).sort((a, b) => b - a);
+  }, [batches]);
+
+  const availableDepartments = useMemo(() => {
+    if (selectedYear === "all") return [];
+    const depts = new Set(batches.filter(b => b.adm_year === selectedYear).map(b => b.department).filter(Boolean));
+    return Array.from(depts).sort();
+  }, [batches, selectedYear]);
+
+  // Keep selected department valid
+  useEffect(() => {
+    if (selectedYear === "all") {
+      if (selectedDepartment !== "all") setSelectedDepartment("all");
+      return;
+    }
+    // If year is picked, and currently selected department is not in available list, pick the first one
+    if (availableDepartments.length > 0 && (selectedDepartment === "all" || !availableDepartments.includes(selectedDepartment as any))) {
+      setSelectedDepartment(availableDepartments[0]);
+    } else if (availableDepartments.length === 0 && selectedDepartment !== "all") {
+      setSelectedDepartment("all");
+    }
+  }, [selectedYear, availableDepartments, selectedDepartment]);
+
+  const selectedBatchId = useMemo(() => {
+    if (selectedYear === "all" || selectedDepartment === "all") return undefined;
+    const batch = batches.find(b => b.adm_year === selectedYear && b.department === selectedDepartment);
+    return batch?._id;
+  }, [selectedYear, selectedDepartment, batches]);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
 
@@ -104,12 +162,16 @@ export default function UsersPage() {
           hasPreviousPage: currentPage > 1,
         });
       } else {
-        const data = await listUsers({
+        const payload: any = {
           role:   currentTabConfig.roles[0],
           page:   currentPage,
           limit:  itemsPerPage,
           search: activeSearch || undefined,
-        });
+        };
+        if (selectedTab === "student" && selectedBatchId) {
+          payload.batch = selectedBatchId;
+        }
+        const data = await listUsers(payload);
         setUsers(data.users);
         setPagination(data.pagination);
       }
@@ -118,7 +180,7 @@ export default function UsersPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedTab, currentPage, activeSearch, itemsPerPage]);
+  }, [selectedTab, currentPage, activeSearch, itemsPerPage, selectedBatchId]);
 
   useEffect(() => {
     fetchUsers();
@@ -193,13 +255,7 @@ export default function UsersPage() {
 
   return (
     <>
-      {isLoading ? (
-        <div className="p-4 md:p-8 space-y-4">
-          <Skeleton className="h-10 w-64" />
-          <Skeleton className="h-96 w-full" />
-        </div>
-      ) : (
-        <div className="p-4 md:p-8">
+      <div className="p-4 md:p-8">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="mb-10">
@@ -228,7 +284,7 @@ export default function UsersPage() {
           <CardContent className="space-y-4">
             {/* Role Tabs */}
             <Tabs value={selectedTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
                 {ROLE_TABS.map((tab) => (
                   <TabsTrigger key={tab.value} value={tab.value} className="cursor-pointer">
                     {tab.label}
@@ -238,7 +294,7 @@ export default function UsersPage() {
             </Tabs>
 
             {/* Search */}
-            <div className="relative">
+            <div className="relative mb-6">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name, email... (Press Enter to search)"
@@ -249,6 +305,69 @@ export default function UsersPage() {
               />
             </div>
 
+            <div className={selectedTab === "student" ? "flex flex-col lg:flex-row rounded-lg border shadow-sm overflow-hidden bg-card" : ""}>
+              {/* Student Batch & Department Filters - Tree View */}
+              {selectedTab === "student" && (
+                <aside className="w-full lg:w-64 xl:w-72 shrink-0 border-b lg:border-b-0 lg:border-r bg-muted/10 p-4 space-y-4">
+                  <h3 className="text-sm font-semibold px-2 tracking-tight text-muted-foreground uppercase text-xs">Directory</h3>
+                  
+                  <Button 
+                    variant={selectedYear === "all" ? "secondary" : "ghost"}
+                    className={`w-full justify-start font-medium cursor-pointer transition-all ${selectedYear === "all" ? "bg-secondary text-primary" : "text-muted-foreground"}`}
+                    onClick={() => { setSelectedYear("all"); setSelectedDepartment("all"); setCurrentPage(1); }}
+                  >
+                    <Users className="mr-2 h-4 w-4" />
+                    All Students
+                  </Button>
+
+                  <div className="space-y-1">
+                    {availableYears.map(year => {
+                      const isExpanded = expandedYears.includes(year);
+                      const depts = batches.filter(b => b.adm_year === year).map(b => b.department);
+                      const uniqueDepts = Array.from(new Set(depts)).sort();
+                      
+                      return (
+                        <div key={year} className="space-y-1">
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start font-medium text-muted-foreground hover:bg-muted/50 p-2 h-9 cursor-pointer"
+                            onClick={() => toggleYear(year)}
+                          >
+                            {isExpanded ? <ChevronDown className="mr-1.5 h-4 w-4 shrink-0" /> : <ChevronRight className="mr-1.5 h-4 w-4 shrink-0" />}
+                            <Folder className="mr-2 h-4 w-4 text-blue-500/80" />
+                            {year} Batch
+                          </Button>
+
+                          {isExpanded && (
+                            <div className="ml-4 pl-3 border-l border-border/50 flex flex-col gap-1 my-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                              {uniqueDepts.map((dept, idx) => {
+                                const isSelected = selectedYear === year && selectedDepartment === dept;
+                                return (
+                                  <Button
+                                    key={`${year}-${dept}-${idx}`}
+                                    variant={isSelected ? "secondary" : "ghost"}
+                                    className={`w-full justify-start h-8 px-2 text-sm cursor-pointer transition-all ${isSelected ? "text-primary font-medium bg-secondary/80" : "text-muted-foreground font-normal hover:bg-muted/40"}`}
+                                    onClick={() => {
+                                      setSelectedYear(year);
+                                      setSelectedDepartment(dept);
+                                      setCurrentPage(1);
+                                    }}
+                                  >
+                                    <LayoutList className="mr-2 h-3.5 w-3.5 shrink-0 opacity-70" />
+                                    {dept}
+                                  </Button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </aside>
+              )}
+
+              <div className="flex-1 min-w-0 flex flex-col bg-card">
             {/* Error */}
             {error && (
               <Alert variant="destructive">
@@ -258,7 +377,7 @@ export default function UsersPage() {
             )}
 
             {/* Table */}
-            <div className="rounded-md border overflow-x-auto">
+            <div className={selectedTab === "student" ? "overflow-x-auto" : "rounded-md border shadow-sm bg-card overflow-x-auto"}>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -290,8 +409,12 @@ export default function UsersPage() {
                     ))
                   ) : sortedUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        No {ROLE_TABS.find((t) => t.value === selectedTab)?.label.toLowerCase()} found
+                      <TableCell colSpan={6} className="h-[28rem] text-center text-muted-foreground">
+                        <div className="flex flex-col items-center justify-center space-y-3 opacity-80">
+                          <Users className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                          <p className="text-lg font-medium">No {ROLE_TABS.find((t) => t.value === selectedTab)?.label.toLowerCase()} found</p>
+                          <p className="text-sm text-muted-foreground">Try adjusting your directory filters or search query.</p>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -368,10 +491,12 @@ export default function UsersPage() {
 
             {/* Pagination */}
             {pagination && (
-              <div className="flex flex-col gap-4 md:gap-3">
+              <div className="flex flex-col gap-4 md:gap-3 p-4">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                   <p className="text-sm text-muted-foreground">
-                    Showing {startItem}–{endItem} of {pagination.totalUsers} users
+                    {pagination.totalUsers === 0 
+                      ? "Showing 0 users" 
+                      : `Showing ${startItem}–${endItem} of ${pagination.totalUsers} users`}
                   </p>
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <div className="flex items-center gap-2">
@@ -450,11 +575,11 @@ export default function UsersPage() {
                 </div>
               </div>
             )}
+
+              </div>
+            </div>
           </CardContent>
         </div>
-      )}
-
-      {/* Dialogs */}
       {selectedUser && (
         <>
           <UserDialog
