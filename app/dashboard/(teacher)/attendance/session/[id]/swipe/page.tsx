@@ -244,7 +244,7 @@ export default function SwipeAttendancePage() {
       } else {
         toast.success(`Attendance successfully marked! (${createdCount} new, ${updatedCount} updated)`);
       }
-      router.push(`/dashboard/attendance`);
+      router.push(`/dashboard/attendance/session/${sessionId}`);
     } catch (error: any) {
       console.error(error);
       toast.error(error.message || "Failed to submit attendance. Please try again.");
