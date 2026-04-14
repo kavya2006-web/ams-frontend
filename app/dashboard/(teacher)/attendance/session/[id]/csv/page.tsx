@@ -183,15 +183,20 @@ export default function CsvAttendancePage() {
         errorCount += (result.errors ?? []).length;
       }
 
-      // Update existing records
-      for (const { recordId, status } of updateRecordsList) {
-        try {
-          await updateAttendanceRecordById(recordId, { status });
-          updatedCount++;
-        } catch (err) {
-          console.error(`Failed to update record ${recordId}:`, err);
-          errorCount++;
-        }
+      // Update existing records in parallel
+      if (updateRecordsList.length > 0) {
+        const updatePromises = updateRecordsList.map(({ recordId, status }) =>
+          updateAttendanceRecordById(recordId, { status })
+        );
+        const results = await Promise.allSettled(updatePromises);
+        results.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            updatedCount++;
+          } else {
+            console.error('Failed to update record:', result.reason);
+            errorCount++;
+          }
+        });
       }
 
       const totalSaved = createdCount + updatedCount;

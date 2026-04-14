@@ -170,15 +170,20 @@ export default function TickAttendancePage() {
         }
       }
 
-      // Execute updates
-      for (const { recordId, status } of updateRecordsList) {
-        try {
-          await updateAttendanceRecordById(recordId, { status });
-          updatedCount++;
-        } catch (error) {
-          console.error(`Failed to update record ${recordId}:`, error);
-          errorCount++;
-        }
+      // Execute updates in parallel
+      if (updateRecordsList.length > 0) {
+        const updatePromises = updateRecordsList.map(({ recordId, status }) =>
+          updateAttendanceRecordById(recordId, { status })
+        );
+        const results = await Promise.allSettled(updatePromises);
+        results.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            updatedCount++;
+          } else {
+            console.error('Failed to update record:', result.reason);
+            errorCount++;
+          }
+        });
       }
 
       setSaveSuccess(true);
