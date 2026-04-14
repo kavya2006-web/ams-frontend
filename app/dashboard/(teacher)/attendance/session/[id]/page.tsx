@@ -168,15 +168,22 @@ export default function SessionAttendanceMethodsPage() {
     }
   }, [sessionId]);
 
-  // Auto-refresh when window regains focus
+  // Auto-refresh when window regains focus (debounced to avoid excessive requests)
   useEffect(() => {
+    let debounceTimeout: NodeJS.Timeout;
     const handleFocus = () => {
-      refreshAttendanceList();
+      clearTimeout(debounceTimeout);
+      debounceTimeout = setTimeout(() => {
+        refreshAttendanceList();
+      }, 500);
     };
 
     window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [sessionId, refreshAttendanceList]);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearTimeout(debounceTimeout);
+    };
+  }, [refreshAttendanceList]);
 
   const toggleAttendance = async (studentId: string) => {
     setSavingStudentId(studentId);

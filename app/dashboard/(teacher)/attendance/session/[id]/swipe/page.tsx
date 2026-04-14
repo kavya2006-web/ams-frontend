@@ -319,29 +319,54 @@ export default function SwipeAttendancePage() {
               {/* Card Face Layout */}
               <div className="flex-1 flex flex-col relative w-full h-full bg-card overflow-hidden rounded-[30px]">
                 
-                <div className="h-1/2 bg-blue-50 dark:bg-blue-900/20 relative flex items-center justify-center border-b">
+                {(() => {
+                  const markedRecord = markedRecords.find(r => r.studentId === student._id);
+                  const bgColor = markedRecord?.status === 'present' 
+                    ? 'bg-green-50 dark:bg-green-900/20' 
+                    : markedRecord?.status === 'absent'
+                      ? 'bg-red-50 dark:bg-red-900/20'
+                      : 'bg-blue-50 dark:bg-blue-900/20';
+                  return (
+                    <div className={`h-1/2 ${bgColor} relative flex items-center justify-center border-b`}>
                   <Avatar className="h-32 w-32 border-4 border-background shadow-md shadow-muted/50">
                     <AvatarFallback className="text-4xl">
                       {student.first_name?.charAt(0)}{student.last_name?.charAt(0) || ""}
                     </AvatarFallback>
                   </Avatar>
 
-                  {/* Built-in visual prompt for Swiping Hint */}
-                  {idx === students.length - 1 && (
-                    <>
-                      <div className="absolute top-4 left-4 border-2 border-red-500 text-red-500 font-bold px-3 py-1 rounded-md -rotate-12 opacity-60">NOPE</div>
-                      <div className="absolute top-4 right-4 border-2 border-green-500 text-green-500 font-bold px-3 py-1 rounded-md rotate-12 opacity-60">LIKE</div>
-                    </>
-                  )}
-                </div>
+                      {/* Built-in visual prompt for Swiping Hint */}
+                      {idx === students.length - 1 && (
+                        <>
+                          <div className="absolute top-4 left-4 border-2 border-red-500 text-red-500 font-bold px-3 py-1 rounded-md -rotate-12 opacity-60">NOPE</div>
+                          <div className="absolute top-4 right-4 border-2 border-green-500 text-green-500 font-bold px-3 py-1 rounded-md rotate-12 opacity-60">LIKE</div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <div className="p-6 flex-1 flex flex-col justify-center items-center text-center">
                   <h2 className="text-2xl font-bold mb-3">{student.name}</h2>
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary">
-                    <span className="text-sm font-semibold text-primary">
-                      {((student.profile as any)?.candidate_code || '').slice(-3).replace(/^0+/, '') || "N/A"}
-                    </span>
-                  </div>
+                  {(() => {
+                    const markedRecord = markedRecords.find(r => r.studentId === student._id);
+                    const badgeBg = markedRecord?.status === 'present'
+                      ? 'bg-green-100 dark:bg-green-900/30 border-green-500'
+                      : markedRecord?.status === 'absent'
+                        ? 'bg-red-100 dark:bg-red-900/30 border-red-500'
+                        : 'bg-primary/10 border-primary';
+                    const badgeText = markedRecord?.status === 'present'
+                      ? 'text-green-700 dark:text-green-300'
+                      : markedRecord?.status === 'absent'
+                        ? 'text-red-700 dark:text-red-300'
+                        : 'text-primary';
+                    return (
+                      <div className={`w-12 h-12 rounded-full ${badgeBg} flex items-center justify-center border-2`}>
+                        <span className={`text-sm font-semibold ${badgeText}`}>
+                          {((student.profile as any)?.candidate_code || '').slice(-3).replace(/^0+/, '') || "N/A"}
+                        </span>
+                      </div>
+                    );
+                  })()}
                   
                   <div className="mt-8 text-sm text-muted-foreground">
                     <p className="flex items-center gap-1">Swipe <strong className="text-green-500">Right</strong> for Present</p>

@@ -37,12 +37,12 @@ export default function TickAttendancePage() {
       let page = 1;
       let totalPages = 1;
 
-      while (page <= totalPages) {
+      do {
         const response = await listUsers({ role: "student", batch: batchId, page, limit: 100 });
-        totalPages = response.pagination.totalPages;
+        totalPages = response.pagination?.totalPages || 1;
         batchStudents.push(...response.users);
-        page += 1;
-      }
+        page++;
+      } while (page <= totalPages);
 
       // Sort students in ascending order by name
       batchStudents.sort((a, b) => {
