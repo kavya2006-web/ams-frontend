@@ -62,12 +62,13 @@ export default function SwipeAttendancePage() {
           page++;
         } while (page <= totalPages);
         
-        // Sort students in ascending order by name
+        // Sort students in ascending order by name, then reverse for correct card stack order
         allStudents.sort((a, b) => {
           const nameA = (a.name || '').toLowerCase();
           const nameB = (b.name || '').toLowerCase();
           return nameA.localeCompare(nameB);
         });
+        allStudents.reverse();
         
         // Ensure standard uniform array order
         setStudents(allStudents);
@@ -158,6 +159,7 @@ export default function SwipeAttendancePage() {
     const newIndex = currentIndex + 1;
     await childRefs[newIndex].current?.restoreCard();
     setCurrentIndex(newIndex);
+    setLastSwipeDirection(null); // Reset visual feedback
     
     // Remove the most recently saved record to cleanly rewrite it on next swipe
     setMarkedRecords((prev) => {
@@ -256,7 +258,7 @@ export default function SwipeAttendancePage() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8 flex flex-col pt-8">
+    <div className="min-h-screen p-4 md:p-8 flex flex-col pt-8 overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <Button variant="ghost" size="icon" onClick={() => router.push(`/dashboard/attendance/session/${sessionId}`)}>
@@ -268,7 +270,7 @@ export default function SwipeAttendancePage() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full relative h-[500px]">
+      <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full relative h-[500px] overflow-hidden">
         {/* Empty State / Summary Screen when done */}
         <AnimatePresence>
           {currentIndex === -1 && (
@@ -320,7 +322,7 @@ export default function SwipeAttendancePage() {
         </AnimatePresence>
 
         {/* Tinder Card Stack */}
-        <div className="relative w-full h-[400px]">
+        <div className="relative w-full h-[400px] overflow-hidden">
           {students.map((student, idx) => {
             // Check if this is the current card being shown
             const isCurrentCard = idx === currentIndex;
@@ -408,7 +410,7 @@ export default function SwipeAttendancePage() {
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-center gap-6 mt-8 z-10 p-4"
+            className="flex items-center justify-center gap-6 mt-8 z-10 p-4 overflow-hidden"
           >
             <Button
               onClick={() => swipe("left")}
