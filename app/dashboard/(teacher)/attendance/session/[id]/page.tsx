@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, Calendar, Clock, Users, BookOpen, Hand, FileSpreadsheet, Check, X, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { getAttendanceSessionById, type AttendanceSession } from "@/lib/api/attendance-session";
@@ -30,6 +31,8 @@ export default function SessionAttendanceMethodsPage() {
   const [loading, setLoading] = useState(true);
   const [attendanceStatus, setAttendanceStatus] = useState<Map<string, 'present' | 'absent'>>(new Map());
   const [savingStudentId, setSavingStudentId] = useState<string | null>(null);
+  const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState<string | null>(null);
 
   const getDummyStatusMap = (studentIds?: Set<string>) => {
     const statusMap = new Map<string, 'present' | 'absent'>();
@@ -185,12 +188,9 @@ export default function SessionAttendanceMethodsPage() {
     };
   }, [refreshAttendanceList]);
 
-  const toggleAttendance = async (studentId: string) => {
+  const setAttendanceStatus_ = async (studentId: string, newStatus: 'present' | 'absent') => {
     setSavingStudentId(studentId);
     try {
-      const currentStatus = attendanceStatus.get(studentId) || 'absent';
-      const newStatus = currentStatus === 'present' ? 'absent' : 'present';
-      
       const existingRecord = attendanceRecords.get(studentId);
       
       if (existingRecord) {
@@ -215,6 +215,9 @@ export default function SessionAttendanceMethodsPage() {
         return newMap;
       });
       
+      // Exit edit mode after marking
+      setEditingStudentId(null);
+      
       // Reload records to get updated data
       loadAttendanceRecords();
     } catch (error) {
@@ -223,6 +226,11 @@ export default function SessionAttendanceMethodsPage() {
     } finally {
       setSavingStudentId(null);
     }
+  };
+
+  const handleEditConfirmation = (studentId: string) => {
+    setEditingStudentId(studentId);
+    setEditDialogOpen(null);
   };
 
   if (loading) {
@@ -375,8 +383,11 @@ export default function SessionAttendanceMethodsPage() {
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {students.map((student) => {
                 const studentId = student._id;
-                const status = attendanceStatus.get(studentId!) || 'absent';
+                const status = attendanceStatus.get(studentId!) || 'default';
                 const isPresent = status === 'present';
+                const hasRecord = attendanceRecords.has(studentId!);
+                const isEditing = editingStudentId === studentId;
+                
                 const p = (student.profile as any) ?? {};
                 const candidateCode = p.candidate_code?.trim() ?? '';
                 const lastThreeDigits = candidateCode.slice(-3).replace(/^0+/, '') || 'N/A';
@@ -387,35 +398,79 @@ export default function SessionAttendanceMethodsPage() {
                     className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-3 flex-1">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary shrink-0">
-                        <span className="text-xs font-semibold text-primary">{lastThreeDigits}</span>
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center border shrink-0 font-semibold transition-colors ${
+                          status === 'present'
+                            ? 'bg-green-100 dark:bg-green-900/30 border-green-500 text-green-700'
+                            : status === 'absent'
+                            ? 'bg-red-100 dark:bg-red-900/30 border-red-500 text-red-700'
+                            : 'bg-primary/10 border-primary text-primary'
+                        }`}
+                      >
+                        <span className="text-xs">{lastThreeDigits}</span>
                       </div>
                       <p className="font-medium text-sm">{student.name}</p>
                     </div>
-                    <Button
-                      variant={isPresent ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => toggleAttendance(studentId!)}
-                      disabled={savingStudentId === studentId}
-                      className="shrink-0 gap-1"
-                    >
-                      {savingStudentId === studentId ? (
-                        <>
-                          <span className="animate-spin inline-block">⟳</span>
-                          Saving...
-                        </>
-                      ) : isPresent ? (
-                        <>
-                          <Check className="h-4 w-4" />
-                          Present
-                        </>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {hasRecord && !isEditing ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditDialogOpen(studentId!)}
+                          disabled={savingStudentId === studentId}
+                          className={`gap-1 font-medium ${
+                            isPresent
+                              ? 'bg-green-500 hover:bg-green-600 text-white border-green-600'
+                              : 'bg-red-500 hover:bg-red-600 text-white border-red-600'
+                          }`}
+                        >
+                          {savingStudentId === studentId ? (
+                            <span className="animate-spin inline-block">⟳</span>
+                          ) : (
+                            isPresent ? 'Present' : 'Absent'
+                          )}
+                        </Button>
                       ) : (
                         <>
-                          <X className="h-4 w-4" />
-                          Absent
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setAttendanceStatus_(studentId!, 'present')}
+                            disabled={savingStudentId === studentId}
+                            className={`gap-1 ${
+                              isPresent
+                                ? 'bg-green-500 hover:bg-green-600 text-white'
+                                : 'bg-green-100 hover:bg-green-200 text-green-700'
+                            }`}
+                            title="Mark Present"
+                          >
+                            {savingStudentId === studentId ? (
+                              <span className="animate-spin inline-block">⟳</span>
+                            ) : (
+                              <Check className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setAttendanceStatus_(studentId!, 'absent')}
+                            disabled={savingStudentId === studentId}
+                            className={`gap-1 ${
+                              !isPresent
+                                ? 'bg-red-500 hover:bg-red-600 text-white'
+                                : 'bg-red-100 hover:bg-red-200 text-red-700'
+                            }`}
+                            title="Mark Absent"
+                          >
+                            {savingStudentId === studentId ? (
+                              <span className="animate-spin inline-block">⟳</span>
+                            ) : (
+                              <X className="h-4 w-4" />
+                            )}
+                          </Button>
                         </>
                       )}
-                    </Button>
+                    </div>
                   </div>
                 );
               })}
@@ -423,6 +478,34 @@ export default function SessionAttendanceMethodsPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!editDialogOpen} onOpenChange={(open) => !open && setEditDialogOpen(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Attendance</DialogTitle>
+            <DialogDescription>
+              Do you want to edit this student's attendance?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setEditDialogOpen(null)}
+            >
+              No
+            </Button>
+            <Button
+              onClick={() => {
+                if (editDialogOpen) {
+                  handleEditConfirmation(editDialogOpen);
+                }
+              }}
+            >
+              Yes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
