@@ -35,12 +35,55 @@ type FormData = {
   dateOfJoining: string;
 };
 
+const mapBackendFieldErrors = (payload: unknown): Record<string, string> => {
+  const fieldErrors: Record<string, string> = {};
+  const p = (payload ?? {}) as { status_code?: number | string; message?: string };
+  const statusCode = Number(p.status_code);
+  const message = p.message || "";
+  const raw = JSON.stringify(payload ?? {}).toLowerCase();
+
+  // Exact backend status-code mapping
+  if (statusCode === 4222) {
+    fieldErrors.candidateCode = message || "Candidate code already exists for another student";
+    return fieldErrors;
+  }
+
+  if (statusCode === 4221) {
+    fieldErrors.admissionNumber = message || "Admission number already exists for another student";
+    return fieldErrors;
+  }
+
+  if (statusCode === 4223) {
+    const combinedMessage =
+      message || "Admission number and candidate code already exist for another student";
+    fieldErrors.admissionNumber = combinedMessage;
+    fieldErrors.candidateCode = combinedMessage;
+    return fieldErrors;
+  }
+
+  // Duplicate/validation mapping for student uniqueness constraints
+  if (raw.includes("candidate_code") || raw.includes("candidate code")) {
+    fieldErrors.candidateCode = message || "Candidate code already exists. Please use a different value.";
+  }
+  if (raw.includes("adm_year") || raw.includes("admission year")) {
+    fieldErrors.admissionYear = message || "Admission year already exists for another student record.";
+  }
+  if (raw.includes("adm_number") || raw.includes("admission number")) {
+    fieldErrors.admissionNumber = message || "Admission number already exists. Please verify and try again.";
+  }
+
+  return fieldErrors;
+};
+
   const FormField = ({ id, label, type = 'text', placeholder, value, error, disabled, onChange }: { id: keyof FormData; label: string; type?: string; placeholder?: string; value: string; error?: string; disabled?: boolean; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; }) => (
     <div className={`space-y-2 ${disabled ? 'cursor-not-allowed' : ''}`}>
       <Label htmlFor={id}>{label}</Label>
       <Input id={id} type={type} placeholder={placeholder} value={value}
-        onChange={onChange} name={id} disabled={disabled} className={disabled ? 'bg-blue-50 dark:bg-blue-950/20 opacity-75 pointer-events-none' : ''} />
-      {error && <p className="text-sm text-red-500">{error}</p>}
+        onChange={onChange} name={id} disabled={disabled} className={cn(
+          disabled ? 'bg-blue-50 dark:bg-blue-950/20 opacity-75 pointer-events-none' : '',
+          error ? 'border-red-500 focus-visible:ring-red-500' : ''
+        )} />
+      {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   );
   
@@ -48,14 +91,17 @@ type FormData = {
     <div className={`space-y-2 ${disabled ? 'cursor-not-allowed' : ''}`}>
       <Label htmlFor={id}>{label}</Label>
       <Select value={value} onValueChange={onValueChange} disabled={disabled}>
-        <SelectTrigger className={disabled ? 'bg-blue-50 dark:bg-blue-950/20 opacity-75 pointer-events-none' : ''}><SelectValue placeholder={placeholder} /></SelectTrigger>
+        <SelectTrigger className={cn(
+          disabled ? 'bg-blue-50 dark:bg-blue-950/20 opacity-75 pointer-events-none' : '',
+          error ? 'border-red-500 focus:ring-red-500' : ''
+        )}><SelectValue placeholder={placeholder} /></SelectTrigger>
         <SelectContent position="popper" sideOffset={5}>
           {options.map((opt) => (
             <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
           ))}
         </SelectContent>
       </Select>
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   );
 
@@ -214,8 +260,16 @@ export function SignUpUserAuthForm({ className, ...props }: UserAuthFormProps) {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to complete registration');
+        const errorData = await response.json().catch(() => ({}));
+        const mappedFieldErrors = mapBackendFieldErrors(errorData);
+
+        if (Object.keys(mappedFieldErrors).length > 0) {
+          setErrors((prev) => ({ ...prev, ...mappedFieldErrors }));
+          setError(null);
+          return;
+        }
+
+        throw new Error(errorData?.message || 'Failed to complete registration');
       }
 
       await refetchUser();
