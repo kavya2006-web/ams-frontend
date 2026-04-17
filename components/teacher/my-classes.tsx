@@ -26,6 +26,57 @@ export default function MyClasses({ onSessionCreated }: MyClassesProps) {
   const [selectedClass, setSelectedClass] = useState<UniqueSession | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  const normalizeSubjectCode = (subject: unknown): string | null => {
+    const s = (subject ?? {}) as {
+      subject_code?: string | number | null;
+      code?: string | number | null;
+      subjectCode?: string | number | null;
+    };
+
+    const raw = s.subject_code ?? s.code ?? s.subjectCode;
+    const value = String(raw ?? "").trim();
+    if (!value || value === "0" || value === "null" || value === "undefined") {
+      return null;
+    }
+
+    return value.toUpperCase();
+  };
+
+  const normalizeSemesterLabel = (subject: unknown): string => {
+    const s = (subject ?? {}) as {
+      sem?: string | number | null;
+      semester?: string | number | null;
+      sem_no?: string | number | null;
+      semNo?: string | number | null;
+    };
+
+    const raw = s.sem ?? s.semester ?? s.sem_no ?? s.semNo;
+    const value = String(raw ?? "").trim();
+
+    if (!value || value === "0" || value === "-" || value === "null" || value === "undefined") {
+      return "-";
+    }
+
+    const digits = value.match(/\d+/)?.[0];
+    if (digits) return `S${digits}`;
+
+    return value.toUpperCase().startsWith("S") ? value.toUpperCase() : `S${value.toUpperCase()}`;
+  };
+
+  const sanitizeUniqueSession = (item: UniqueSession): UniqueSession => {
+    const normalizedCode = normalizeSubjectCode(item.subject) ?? "";
+    const normalizedSem = normalizeSemesterLabel(item.subject);
+
+    return {
+      ...item,
+      subject: {
+        ...item.subject,
+        subject_code: normalizedCode,
+        sem: normalizedSem,
+      },
+    };
+  };
+
   const loadClassesFromSessionsFallback = async (): Promise<UniqueSession[]> => {
     if (!user?.email) return [];
 
@@ -112,16 +163,16 @@ export default function MyClasses({ onSessionCreated }: MyClassesProps) {
     try {
       const data = await getRecentUniqueSessions();
       if (data.length > 0) {
-        setClasses(data);
+        setClasses(data.map(sanitizeUniqueSession));
       } else {
         const fallbackData = await loadClassesFromSessionsFallback();
-        setClasses(fallbackData);
+        setClasses(fallbackData.map(sanitizeUniqueSession));
       }
     } catch (error) {
       console.error("Failed to load classes:", error);
       try {
         const fallbackData = await loadClassesFromSessionsFallback();
-        setClasses(fallbackData);
+        setClasses(fallbackData.map(sanitizeUniqueSession));
       } catch (fallbackError) {
         console.error("My Classes fallback failed:", fallbackError);
         setClasses([]);
@@ -177,6 +228,8 @@ export default function MyClasses({ onSessionCreated }: MyClassesProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {classes.map((classItem) => {
               const key = `${classItem.batch._id}-${classItem.subject._id}`;
+              const subjectCode = normalizeSubjectCode(classItem.subject);
+              const semesterLabel = normalizeSemesterLabel(classItem.subject);
               return (
                 <Card
                   key={key}
@@ -190,9 +243,11 @@ export default function MyClasses({ onSessionCreated }: MyClassesProps) {
                         <h3 className="font-semibold min-w-0 text-base leading-tight truncate">
                           {classItem.subject.name}
                         </h3>
-                      <p className="text-xs flex items-center justify-center text-muted-foreground">
-                          ({classItem.subject.subject_code})
+                      {subjectCode ? (
+                        <p className="text-xs flex items-center justify-center text-muted-foreground">
+                          ({subjectCode})
                         </p>
+                      ) : null}
                     </div>
 
                     {/* Batch */}
@@ -202,7 +257,7 @@ export default function MyClasses({ onSessionCreated }: MyClassesProps) {
                         {classItem.batch.name}
                       </span>
                       <Badge variant="outline" className="ml-auto shrink-0">
-                        S{classItem.subject.sem || "-"}
+                        {semesterLabel}
                       </Badge>
                     </div>
 

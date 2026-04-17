@@ -129,6 +129,41 @@ const mapBackendFieldErrors = (payload: unknown): Record<string, string> => {
     raw.includes("candidate_code") ||
     raw.includes("candidate code") ||
     lowerMessage.includes("candidate code");
+  const isUniquenessConflictText =
+    lowerMessage.includes("already exist") ||
+    lowerMessage.includes("already exists");
+
+  // Production backend can sometimes return only one duplicate signal even when both collide.
+  // In that case, mark both fields to avoid misleading the user.
+  if (
+    (statusCode === 4221 || statusCode === 4222 || statusCode === 4223 || isUniquenessConflictText) &&
+    (hasAdmissionSignal || hasCandidateSignal)
+  ) {
+    const combined = selectFieldErrorMessage(
+      message,
+      "Admission number and candidate code already exist for another student",
+      ["admission", "candidate", "number", "code"]
+    );
+
+    if (hasAdmissionSignal && hasCandidateSignal) {
+      fieldErrors.admissionNumber = combined;
+      fieldErrors.candidateCode = combined;
+      return fieldErrors;
+    }
+
+    if (statusCode === 4223) {
+      fieldErrors.admissionNumber = combined;
+      fieldErrors.candidateCode = combined;
+      return fieldErrors;
+    }
+
+    // Heuristic fallback for inconsistent production responses.
+    if (statusCode === 4221 || statusCode === 4222) {
+      fieldErrors.admissionNumber = combined;
+      fieldErrors.candidateCode = combined;
+      return fieldErrors;
+    }
+  }
 
   // Always prioritize combined duplicate mapping when both signals exist,
   // even if backend status code is incorrectly sent as 4221/4222.

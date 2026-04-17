@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { authClient } from '@/lib/auth-client';
 import { useRouter, usePathname } from 'next/navigation';
 import { IncompleteProfileResponse, User } from "./types/UserTypes";
@@ -23,10 +23,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [incompleteProfile, setIncompleteProfile] = useState<IncompleteProfileResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const inFlightRef = useRef(false);
+  const lastFetchTsRef = useRef(0);
   const router = useRouter();
   const pathname = usePathname();
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
+    if (inFlightRef.current) return;
+
+    // Avoid rapid duplicate calls on onboarding route when backend keeps returning 422.
+    const now = Date.now();
+    if (pathname === '/onboarding' && now - lastFetchTsRef.current < 800) {
+      return;
+    }
+
+    inFlightRef.current = true;
+    lastFetchTsRef.current = now;
+
     if (!session) {
       setUser(null);
       setIncompleteProfile(null);
@@ -37,6 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!publicPaths.includes(pathname)) {
         router.push('/signin');
       }
+      inFlightRef.current = false;
       return;
     }
 
@@ -69,11 +83,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(userData);
 
       if (response.status === 422) {
-        // User needs to complete onboarding
-        // Add small delay to ensure state is settled before redirect
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // User needs onboarding; avoid self-redirect loops.
         setIsLoading(false);
-        router.replace('/onboarding');
+        if (pathname !== '/onboarding') {
+          router.replace('/onboarding');
+        }
         return;
       }
 
@@ -84,15 +98,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
       setUser(null);
       setIncompleteProfile(null);
+    } finally {
+      inFlightRef.current = false;
     }
-  };
+  }, [pathname, router, session]);
 
   useEffect(() => {
     if (!isPending) {
       fetchUser();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPending, hasSession]);
+  }, [isPending, hasSession, fetchUser]);
 
   const value: AuthContextType = {
     session,
