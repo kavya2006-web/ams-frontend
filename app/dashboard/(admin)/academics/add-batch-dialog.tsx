@@ -239,7 +239,7 @@ export function AddBatchDialog({ open, onOpenChange, onSuccess }: AddBatchDialog
                     <Input placeholder="24CSE" {...field} />
                   </FormControl>
                   <p className="text-xs text-muted-foreground">
-                    Optional. Format: <strong>YY[A-Z]{2,3}[0-9]*</strong><br/>
+                    Optional. Format: <strong>{"YY[A-Z]{2,3}[0-9]*"}</strong><br/>
                     Examples: 24CSE, 24CSE1, 24CSE2, 24ECE, 24IT1
                   </p>
                   <FormMessage />
