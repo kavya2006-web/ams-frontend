@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Calendar, Clock, Users, BookOpen, Hand, FileSpreadsheet, Check, X, RefreshCw } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Users, BookOpen, Hand, FileSpreadsheet, Check, X } from "lucide-react";
 import { format } from "date-fns";
 import { getAttendanceSessionById, type AttendanceSession } from "@/lib/api/attendance-session";
 import { listUsers } from "@/lib/api/user";
@@ -16,6 +16,7 @@ import { listAttendanceRecords, createAttendanceRecord, updateAttendanceRecordBy
 import type { User } from "@/lib/types/UserTypes";
 import type { AttendanceRecord } from "@/lib/api/attendance-record";
 import { getTeacherStudents } from "@/lib/dummy-data";
+import CsvAttendanceDialog from "@/components/teacher/csv-attendance-dialog";
 
 export const dynamic = "force-dynamic";
 export const dynamicParams = true;
@@ -33,6 +34,21 @@ export default function SessionAttendanceMethodsPage() {
   const [savingStudentId, setSavingStudentId] = useState<string | null>(null);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState<string | null>(null);
+  const [csvDialogOpen, setCsvDialogOpen] = useState(false);
+
+  const attendanceSummary = useMemo(() => {
+    let present = 0;
+    let absent = 0;
+
+    students.forEach((student) => {
+      const status = attendanceStatus.get(student._id!);
+      if (status === "present") present += 1;
+      if (status === "absent") absent += 1;
+    });
+
+    const unmarked = Math.max(0, students.length - present - absent);
+    return { present, absent, unmarked };
+  }, [students, attendanceStatus]);
 
   const getDummyStatusMap = (studentIds?: Set<string>) => {
     const statusMap = new Map<string, 'present' | 'absent'>();
@@ -344,7 +360,7 @@ export default function SessionAttendanceMethodsPage() {
           </Card>
         </Link>
 
-        <Link href={`/dashboard/attendance/session/${sessionId}/csv`} className="block">
+        <button onClick={() => setCsvDialogOpen(true)} className="block text-left">
           <Card className="border-2 cursor-pointer hover:shadow-lg transition-shadow h-full">
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -353,21 +369,35 @@ export default function SessionAttendanceMethodsPage() {
               </div>
             </CardHeader>
           </Card>
-        </Link>
+        </button>
       </div>
 
       {/* Student Attendance List */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-4">
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Student Attendance List
-            </CardTitle>
-            <Button variant="outline" size="sm" onClick={refreshAttendanceList} className="gap-2">
-              <RefreshCw className="h-4 w-4" />
-              Refresh
-            </Button>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-4" />
+                Student Attendance List
+              </CardTitle>
+              <p className="text-sm font-medium ">Total: {students.length}</p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-md border bg-green-50 dark:bg-green-950/30 px-3 py-2">
+                <p className="text-xs text-muted-foreground">Present</p>
+                <p className="text-lg font-semibold text-green-700 dark:text-green-400">{attendanceSummary.present}</p>
+              </div>
+              <div className="rounded-md border bg-red-50 dark:bg-red-950/30 px-3 py-2">
+                <p className="text-xs text-muted-foreground">Absent</p>
+                <p className="text-lg font-semibold text-red-700 dark:text-red-400">{attendanceSummary.absent}</p>
+              </div>
+              <div className="rounded-md border bg-muted px-3 py-2">
+                <p className="text-xs text-muted-foreground">Unmarked</p>
+                <p className="text-lg font-semibold">{attendanceSummary.unmarked}</p>
+              </div>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -506,6 +536,17 @@ export default function SessionAttendanceMethodsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {session && (
+        <CsvAttendanceDialog
+          open={csvDialogOpen}
+          onOpenChange={setCsvDialogOpen}
+          session={session}
+          students={students}
+          existingRecords={attendanceRecords}
+          onSuccess={refreshAttendanceList}
+        />
+      )}
     </div>
   );
 }
