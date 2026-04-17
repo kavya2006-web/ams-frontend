@@ -201,6 +201,10 @@ Update `.github/copilot-instructions.md` immediately after:
 
 #### Teacher Home (`/dashboard/(teacher)`)
 - **Features:**
+  - Teacher-specific dashboard data (not shared):
+    - Attendance analytics are computed from sessions created by the authenticated teacher only
+    - Class attendance percentages are derived from attendance records for the teacher's own sessions
+    - Notifications panel is seeded from the teacher's recent sessions
   - My Classes grid showing unique batch+subject combinations (from `/attendance/session/recent`)
   - Click any class to open quick-start dialog for creating new session
   - Quick-start dialog features:
@@ -215,7 +219,7 @@ Update `.github/copilot-instructions.md` immediately after:
 
 #### Attendance Management (`/dashboard/(teacher)/attendance`)
 - **Features:**
-  - View all recent attendance sessions
+  - View attendance sessions created by the authenticated teacher only
   - Filter sessions by unique class (batch+subject combination)
   - Create new class/attendance session
   - Sessions table with batch, subject, time, duration, and actions

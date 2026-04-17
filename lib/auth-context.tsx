@@ -18,6 +18,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = authClient.useSession();
+  const hasSession = Boolean(session);
   const [user, setUser] = useState<User | null>(null);
   const [incompleteProfile, setIncompleteProfile] = useState<IncompleteProfileResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       fetchUser();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPending]);
+  }, [isPending, hasSession]);
 
   const value: AuthContextType = {
     session,

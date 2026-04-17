@@ -205,6 +205,10 @@ export default function CsvAttendancePage() {
           ? `Saved ${totalSaved} records (${createdCount} new, ${updatedCount} updated) with ${errorCount} errors.`
           : `Saved ${totalSaved} records successfully (${createdCount} new, ${updatedCount} updated).`
       );
+
+      if (errorCount === 0) {
+        router.push(`/dashboard/attendance/session/${sessionId}`);
+      }
     } catch (error) {
       console.error("Failed to save attendance:", error);
       setSaveError(error instanceof Error ? error.message : "Failed to save attendance records");

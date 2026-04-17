@@ -23,6 +23,7 @@ export interface AttendanceSession {
   created_by: {
     _id: string;
     user: {
+      _id?: string;
       name: string;
       email: string;
       first_name: string;
