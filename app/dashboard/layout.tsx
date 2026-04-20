@@ -11,9 +11,14 @@ import Loading from "@/app/loading";
 import Avatar, { genConfig } from 'react-nice-avatar';
 
 export default function DashboardLayout({
-  children,
+  admin,
+  student,
+  teacher
 }: Readonly<{
   children: React.ReactNode;
+  admin: React.ReactNode;
+  student: React.ReactNode;
+  teacher: React.ReactNode;
 }>) {
   const router = useRouter();
   const { user, isLoading, session, incompleteProfile } = useAuth();
@@ -109,7 +114,10 @@ export default function DashboardLayout({
       <main className="flex-1 flex flex-col overflow-hidden">
         <Navbar />
         <div className="flex-1 overflow-auto sm:pb-20">
-          {children}
+          {user.role == "student" && student}
+          {user.role == "admin" && admin}
+          {user.role == "teacher" && teacher}
+          {!["student","admin","teacher"].includes(user.role) && <div className="flex flex-1 items-center justify-center"><p>Your role &quot;{user.role}&quot; does not have a dashboard implemented yet.</p></div>}
         </div>
       </main>
     </div>

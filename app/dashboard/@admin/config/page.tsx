@@ -378,13 +378,6 @@ export default function AdminConfigPage() {
         return items.filter((item) => getNamespace(item.key) === activeNs);
     }, [items, activeNs]);
 
-    // Redirect non-admins
-    useEffect(() => {
-        if (!authLoading && user && user.role !== "admin") {
-            router.replace("/dashboard");
-        }
-    }, [authLoading, user, router]);
-
     const load = useCallback(async () => {
         setLoading(true);
         try {
@@ -437,8 +430,6 @@ export default function AdminConfigPage() {
             </div>
         );
     }
-
-    if (!user || user.role !== "admin") return null;
 
     return (
         <div className="min-h-screen bg-background">
