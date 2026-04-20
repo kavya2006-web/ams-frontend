@@ -8,16 +8,16 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, CheckCircle2, CircleAlert } from "lucide-react";
-import { createBulkAttendanceRecords, updateAttendanceRecordById, type AttendanceStatus, type AttendanceRecord } from "@/lib/api/attendance-record";
+import { createBulkAttendanceRecords, updateAttendanceRecordById, type AttendanceStatus } from "@/lib/api/attendance-record";
 import type { User } from "@/lib/types/UserTypes";
-import type { AttendanceSession } from "@/lib/api/attendance-session";
+import type { AttendanceSession, EmbeddedAttendanceRecord } from "@/lib/api/attendance-session";
 
 interface CsvAttendanceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   session: AttendanceSession;
   students: User[];
-  existingRecords: Map<string, AttendanceRecord>;
+  existingRecords: Map<string, EmbeddedAttendanceRecord>;
   onSuccess?: () => void;
 }
 

@@ -9,9 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowLeft, Check, X, RotateCcw, Save } from "lucide-react";
-import { getAttendanceSessionById, type AttendanceSession } from "@/lib/api/attendance-session";
+import { createBulkAttendanceRecords, updateAttendanceRecordById, type AttendanceStatus, type AttendanceRecord } from "@/lib/api/attendance-record";
+import { getAttendanceSessionById, type AttendanceSession, type EmbeddedAttendanceRecord } from "@/lib/api/attendance-session";
 import { listUsers } from "@/lib/api/user";
-import { createBulkAttendanceRecords, listAttendanceRecords, updateAttendanceRecordById, type AttendanceStatus, type AttendanceRecord } from "@/lib/api/attendance-record";
 import type { User } from "@/lib/types/UserTypes";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -40,7 +40,7 @@ export default function SwipeAttendancePage() {
   
   // Track the current index for UI purposes 
   const [currentIndex, setCurrentIndex] = useState<number>(0);
-  const [existingRecords, setExistingRecords] = useState<Map<string, AttendanceRecord>>(new Map());
+  const [existingRecords, setExistingRecords] = useState<Map<string, EmbeddedAttendanceRecord>>(new Map());
   const [lastSwipeDirection, setLastSwipeDirection] = useState<'left' | 'right' | null>(null);
 
   useEffect(() => {
@@ -74,32 +74,17 @@ export default function SwipeAttendancePage() {
         setStudents(allStudents);
         setCurrentIndex(allStudents.length - 1);
 
-        // Load existing attendance records for this session
-        try {
-          let allRecords: AttendanceRecord[] = [];
-          let recPage = 1;
-          let recTotalPages = 1;
-          do {
-            const response = await listAttendanceRecords({ session: sessionId, limit: 100, page: recPage });
-            allRecords = [...allRecords, ...response.records];
-            recTotalPages = response.pagination?.totalPages || 1;
-            recPage++;
-          } while (recPage <= recTotalPages);
+        // Load existing records from the already-fetched session
+        const recordsMap = new Map<string, EmbeddedAttendanceRecord>();
+        const records: Array<{ studentId: string; status: AttendanceStatus }> = [];
 
-          const recordsMap = new Map<string, AttendanceRecord>();
-          const records: Array<{ studentId: string; status: AttendanceStatus }> = [];
+        (sessionData.records ?? []).forEach((record) => {
+          recordsMap.set(record.student._id, record);
+          records.push({ studentId: record.student._id, status: record.status });
+        });
 
-          allRecords.forEach((record) => {
-            recordsMap.set(record.student._id, record);
-            records.push({ studentId: record.student._id, status: record.status });
-          });
-
-          setExistingRecords(recordsMap);
-          setMarkedRecords(records);
-        } catch (error) {
-          console.warn("Failed to load existing attendance records:", error);
-          setExistingRecords(new Map());
-        }
+        setExistingRecords(recordsMap);
+        setMarkedRecords(records);
       } catch (error) {
         console.error("Failed to load data:", error);
         toast.error("Failed to load session or students.");

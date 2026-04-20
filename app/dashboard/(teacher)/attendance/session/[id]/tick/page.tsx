@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Calendar, Clock, Users, BookOpen, Check, X, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
-import { getAttendanceSessionById, type AttendanceSession } from "@/lib/api/attendance-session";
-import { createBulkAttendanceRecords, listAttendanceRecords, updateAttendanceRecordById, type AttendanceStatus, type AttendanceRecord } from "@/lib/api/attendance-record";
+import { getAttendanceSessionById, type AttendanceSession, type EmbeddedAttendanceRecord } from "@/lib/api/attendance-session";
+import { createBulkAttendanceRecords, updateAttendanceRecordById, type AttendanceStatus } from "@/lib/api/attendance-record";
 import { listUsers, type User } from "@/lib/api/user";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export default function TickAttendancePage() {
   const [history, setHistory] = useState<Array<{ studentId: string; previous?: AttendanceStatus }>>([]);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [existingRecords, setExistingRecords] = useState<Map<string, AttendanceRecord>>(new Map());
+  const [existingRecords, setExistingRecords] = useState<Map<string, EmbeddedAttendanceRecord>>(new Map());
 
   const loadBatchStudents = useCallback(async (batchId: string) => {
     setLoadingStudents(true);
@@ -67,32 +67,17 @@ export default function TickAttendancePage() {
       setSession(data);
       await loadBatchStudents(data.batch._id);
 
-      // Load existing attendance records for this session
-      try {
-        let allRecords: AttendanceRecord[] = [];
-        let page = 1;
-        let totalPages = 1;
-        do {
-          const response = await listAttendanceRecords({ session: sessionId, limit: 100, page });
-          allRecords = [...allRecords, ...response.records];
-          totalPages = response.pagination?.totalPages || 1;
-          page++;
-        } while (page <= totalPages);
+      // Load existing attendance records from the already-fetched session
+      const recordsMap = new Map<string, EmbeddedAttendanceRecord>();
+      const statusMap: Record<string, AttendanceStatus> = {};
 
-        const recordsMap = new Map<string, AttendanceRecord>();
-        const statusMap: Record<string, AttendanceStatus> = {};
+      (data.records ?? []).forEach((record) => {
+        recordsMap.set(record.student._id, record);
+        statusMap[record.student._id] = record.status;
+      });
 
-        allRecords.forEach((record) => {
-          recordsMap.set(record.student._id, record);
-          statusMap[record.student._id] = record.status;
-        });
-
-        setExistingRecords(recordsMap);
-        setMarkedStatuses(statusMap);
-      } catch (error) {
-        console.warn("Failed to load existing attendance records:", error);
-        setExistingRecords(new Map());
-      }
+      setExistingRecords(recordsMap);
+      setMarkedStatuses(statusMap);
     } catch (error) {
       console.error("Failed to load session:", error);
     } finally {

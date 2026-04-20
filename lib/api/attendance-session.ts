@@ -6,6 +6,22 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
 export type SessionType = 'regular' | 'extra' | 'practical';
+export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
+
+export interface EmbeddedAttendanceRecord {
+  _id: string;
+  student: {
+    _id: string;
+    name: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    profile?: Record<string, any>;
+  };
+  status: AttendanceStatus;
+  remarks?: string;
+  marked_at: string;
+}
 
 export interface AttendanceSession {
   _id: string;
@@ -14,11 +30,16 @@ export interface AttendanceSession {
     name: string;
     code: string;
     year: number;
+    adm_year?: number;
+    department?: string;
   };
   subject: {
     _id: string;
     name: string;
     code: string;
+    subject_code?: string;
+    sem?: string;
+    type?: string;
   };
   created_by: {
     _id: string;
@@ -34,6 +55,7 @@ export interface AttendanceSession {
   end_time: string;
   hours_taken: number;
   session_type: SessionType;
+  records: EmbeddedAttendanceRecord[];
   createdAt: string;
   updatedAt: string;
 }
@@ -162,6 +184,7 @@ export async function getAttendanceSessionById(id: string): Promise<AttendanceSe
       end_time: new Date(Date.now() + 3600000).toISOString(),
       hours_taken: 1,
       session_type: "regular",
+      records: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
