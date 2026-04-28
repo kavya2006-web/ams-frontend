@@ -39,6 +39,25 @@ export default function ProfilePage() {
     );
   }
 
+  // Profile Completion
+  const getProfileCompletion = () => {
+    const fields = [
+      user.first_name,
+      user.last_name,
+      user.email,
+      user.phone,
+      user.gender,
+      user.image,
+      (user.profile as any)?.adm_number,
+      (user.profile as any)?.department,
+      (user.profile as any)?.adm_year,
+    ];
+
+    const filled = fields.filter((f) => f && f !== "" && f !== "gen").length;
+    return Math.round((filled / fields.length) * 100);
+  };
+  const completion = getProfileCompletion();
+
   return (
     <main className="min-h-screen bg-background">
       {" "}
@@ -84,11 +103,19 @@ export default function ProfilePage() {
               <div className="mb-5">
                 <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
                   <span>Profile completion</span>
-                  <span>75%</span>
+                  <span>{completion}%</span>
                 </div>
                 <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full w-3/4 bg-primary rounded-full" />
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-500"
+                    style={{ width: `${completion}%` }}
+                  />
                 </div>
+                {completion < 100 && (
+                  <p className="text-[11px] text-muted-foreground mt-1.5">
+                    Complete your profile
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2 text-sm">

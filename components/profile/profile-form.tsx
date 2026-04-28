@@ -36,11 +36,13 @@ export default function ProfileForm({
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
 
   const onProfileChange = (k: string, v: unknown) => {
-    setUser((s) => s ? ({ ...s, profile: { ...(s.profile ?? {}), [k]: v } }) : s);
+    setUser((s) =>
+      s ? { ...s, profile: { ...(s.profile ?? {}), [k]: v } } : s,
+    );
   };
 
   const onChange = <K extends keyof User>(k: K, v: User[K]) => {
-    setUser((s) => (s ? ({ ...s, [k]: v }) : s));
+    setUser((s) => (s ? { ...s, [k]: v } : s));
   };
 
   const onSave = (e?: React.FormEvent) => {
@@ -63,7 +65,10 @@ export default function ProfileForm({
   return (
     <form onSubmit={onSave} className="space-y-6">
       {savedMsg && (
-        <Alert variant="default" className="bg-emerald-50 border-emerald-200 text-emerald-900">
+        <Alert
+          variant="default"
+          className="bg-emerald-50 border-emerald-200 text-emerald-900"
+        >
           {savedMsg}
         </Alert>
       )}
@@ -71,7 +76,9 @@ export default function ProfileForm({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold">Account details</h2>
-          <p className="text-sm text-muted-foreground">View or update your profile information.</p>
+          <p className="text-sm text-muted-foreground">
+            View or update your profile information.
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -88,14 +95,25 @@ export default function ProfileForm({
 
       <Card className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+          {/* Editable */}
           <FormField label="First Name">
-            <Input value={user.first_name ?? ""} disabled />
+            <Input
+              value={user.first_name ?? ""}
+              onChange={(e) => onChange("first_name", e.target.value)}
+              disabled={!editing}
+            />
           </FormField>
 
+          {/* Editable */}
           <FormField label="Last Name">
-            <Input value={user.last_name ?? ""} disabled />
+            <Input
+              value={user.last_name ?? ""}
+              onChange={(e) => onChange("last_name", e.target.value)}
+              disabled={!editing}
+            />
           </FormField>
 
+          {/* Editable */}
           <FormField label="Phone Number">
             <Input
               value={user.phone ? String(user.phone) : ""}
@@ -108,12 +126,18 @@ export default function ProfileForm({
             />
           </FormField>
 
+          {/* Editable */}
           <FormField label="Gender">
             <div className="relative">
               <select
                 aria-label="Gender"
                 value={user.gender ?? ""}
-                onChange={(e) => onChange("gender", (e.target.value || undefined) as User["gender"])}
+                onChange={(e) =>
+                  onChange(
+                    "gender",
+                    (e.target.value || undefined) as User["gender"],
+                  )
+                }
                 disabled={!editing}
                 className={[
                   "h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-colors",
@@ -150,30 +174,63 @@ export default function ProfileForm({
           {user.role === "student" && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
               <FormField label="Admission Number">
-                <Input value={(user.profile as any)?.adm_number || ""} onChange={(e) => onProfileChange("adm_number", e.target.value)} disabled={!editing} />
-              </FormField>
-
-              <FormField label="Admission Year">
                 <Input
-                  value={(user.profile as any)?.adm_year ? String((user.profile as any).adm_year) : ""}
-                  onChange={(e) => {
-                    const value = e.target.value.trim();
-                    onProfileChange("adm_year", value ? Number(value) : undefined);
-                  }}
+                  value={(user.profile as any)?.adm_number || ""}
+                  onChange={(e) =>
+                    onProfileChange("adm_number", e.target.value)
+                  }
                   disabled={!editing}
                 />
               </FormField>
 
+              {/* Editable */}
+              <FormField label="Admission Year">
+                <Input
+                  value={
+                    (user.profile as any)?.adm_year
+                      ? String((user.profile as any).adm_year)
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value.trim();
+                    onProfileChange(
+                      "adm_year",
+                      value ? Number(value) : undefined,
+                    );
+                  }}
+                  disabled
+                />
+              </FormField>
+
               <FormField label="Candidate Code">
-                <Input value={(user.profile as any)?.candidate_code || ""} onChange={(e) => onProfileChange("candidate_code", e.target.value)} disabled={!editing} />
+                <Input
+                  value={(user.profile as any)?.candidate_code || ""}
+                  onChange={(e) =>
+                    onProfileChange("candidate_code", e.target.value)
+                  }
+                  disabled
+                />
               </FormField>
 
               <FormField label="Department">
-                <Input value={(user.profile as any)?.department || ""} onChange={(e) => onProfileChange("department", e.target.value || undefined)} disabled={!editing} />
+                <Input
+                  value={(user.profile as any)?.department || ""}
+                  onChange={(e) =>
+                    onProfileChange("department", e.target.value || undefined)
+                  }
+                  disabled
+                />
               </FormField>
 
               <FormField label="Date of Birth">
-                <Input type="date" value={(user.profile as any)?.date_of_birth || ""} onChange={(e) => onProfileChange("date_of_birth", e.target.value)} disabled={!editing} />
+                <Input
+                  type="date"
+                  value={(user.profile as any)?.date_of_birth || ""}
+                  onChange={(e) =>
+                    onProfileChange("date_of_birth", e.target.value)
+                  }
+                  disabled
+                />
               </FormField>
             </div>
           )}
@@ -181,23 +238,49 @@ export default function ProfileForm({
           {user.role === "parent" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
               <FormField label="Relation">
-                <Input value={(user.profile as any)?.relation || ""} onChange={(e) => onProfileChange("relation", e.target.value || undefined)} disabled={!editing} placeholder="Father / Mother / Guardian" />
+                <Input
+                  value={(user.profile as any)?.relation || ""}
+                  onChange={(e) =>
+                    onProfileChange("relation", e.target.value || undefined)
+                  }
+                  disabled={!editing}
+                  placeholder="Father / Mother / Guardian"
+                />
               </FormField>
             </div>
           )}
 
-          {(user.role != "student" && user.role != "parent") && (
+          {user.role != "student" && user.role != "parent" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
               <FormField label="Designation">
-                <Input value={(user.profile as any)?.designation || ""} onChange={(e) => onProfileChange("designation", e.target.value)} disabled={!editing} />
+                <Input
+                  value={(user.profile as any)?.designation || ""}
+                  onChange={(e) =>
+                    onProfileChange("designation", e.target.value)
+                  }
+                  disabled={!editing}
+                />
               </FormField>
 
               <FormField label="Department">
-                <Input value={(user.profile as any)?.department || ""} onChange={(e) => onProfileChange("department", e.target.value || undefined)} disabled={!editing} />
+                <Input
+                  value={(user.profile as any)?.department || ""}
+                  onChange={(e) =>
+                    onProfileChange("department", e.target.value || undefined)
+                  }
+                  disabled={!editing}
+                />
               </FormField>
 
               <FormField label="Date of Joining">
-                <Input type="date" value={(user.profile as any)?.date_of_joining || ""} onChange={(e) => onProfileChange("date_of_joining", e.target.value)} disabled={!editing} />
+                <Input
+                  type="date"
+                  value={(user.profile as any)?.date_of_joining || ""}
+                  onChange={(e) =>
+                    onProfileChange("date_of_joining", e.target.value)
+                  }
+                  disabled={!editing}
+                />
               </FormField>
             </div>
           )}
