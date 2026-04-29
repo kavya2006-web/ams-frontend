@@ -30,6 +30,8 @@ export interface AttendanceRecord {
       _id: string;
       name: string;
       code: string;
+      sem?: string | number;
+      semester?: string | number;
     };
   };
   marked_by: {

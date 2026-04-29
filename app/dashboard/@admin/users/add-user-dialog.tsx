@@ -48,7 +48,7 @@ const createUserFormSchema = z
     adm_number: z.string().optional(),
     adm_year: z.union([z.string(), z.number()]).optional(),
     candidate_code: z.string().optional(),
-    department: z.enum(["CSE", "ECE", "IT"] as const).optional(),
+    department: z.enum(["CSE", "ECE", "IT", "GEN"] as const).optional(),
     date_of_birth: z.string().optional(),
   })
   .superRefine((val, ctx) => {
@@ -415,6 +415,7 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
                             <SelectItem value="CSE">CSE</SelectItem>
                             <SelectItem value="ECE">ECE</SelectItem>
                             <SelectItem value="IT">IT</SelectItem>
+                            <SelectItem value="GEN">GEN</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />

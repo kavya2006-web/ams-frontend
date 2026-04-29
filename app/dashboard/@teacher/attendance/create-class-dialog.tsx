@@ -44,7 +44,8 @@ export default function CreateClassDialog({ onClassCreated }: CreateClassDialogP
     }
   }, [open]);
 
-  const isValidDept = ["CSE", "ECE", "IT"].includes(teacherDept);
+  const isValidDept = ["CSE", "ECE", "IT", "GEN"].includes(teacherDept);
+  const isGeneralDept = teacherDept === "GEN";
 
   const loadData = async () => {
     setLoadingData(true);
@@ -69,17 +70,19 @@ export default function CreateClassDialog({ onClassCreated }: CreateClassDialogP
 
   useEffect(() => {
     if (selectedBatch) {
-      const filtered = allSubjects.filter(
-        s => s.scheme === selectedBatch.scheme && s.department === selectedBatch.department
-      );
+      const filtered = allSubjects.filter((s) => {
+        if (s.scheme !== selectedBatch.scheme) return false;
+        if (isGeneralDept) return s.department === "GEN";
+        return s.department === selectedBatch.department;
+      });
       setSubjects(filtered);
-      if (subjectId && !filtered.some(s => s._id === subjectId)) {
+      if (subjectId && !filtered.some((s) => s._id === subjectId)) {
         setSubjectId("");
       }
     } else {
       setSubjects(allSubjects);
     }
-  }, [batchId, selectedBatch, allSubjects]);
+  }, [batchId, selectedBatch, allSubjects, subjectId, isGeneralDept]);
 
   const getStartTimePreview = () => {
     let t = setHours(new Date(), startHour);

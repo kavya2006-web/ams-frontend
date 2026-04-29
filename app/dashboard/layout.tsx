@@ -56,15 +56,15 @@ export default function DashboardLayout({
       );
     }
 
-    // Teacher-specific items
-    if (user?.role === 'teacher' || user?.role === 'hod') {
-      baseItems.push( 
+    // Student-specific items
+    if (user?.role === 'student') {
+      baseItems.push(
         { icon: <ClipboardCheck size={18} />, label: 'Attendance', onClick: () => router.push('/dashboard/attendance') }
       );
     }
 
-    // Student-specific items
-    if (user?.role === 'student') {
+    // Teacher-specific items
+    if (user?.role === 'teacher' || user?.role === 'hod') {
       baseItems.push(
         { icon: <ClipboardCheck size={18} />, label: 'Attendance', onClick: () => router.push('/dashboard/attendance') }
       );
